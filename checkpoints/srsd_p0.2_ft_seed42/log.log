@@ -90,41 +90,40 @@ train.py  --name  srsd_p0.2_ft_seed42  --pretrained  4-classes-freqnet-v2.pth  -
 ==================== requires_grad Ture fc1.bias
 
 (Val @ start, before training) acc: 0.99125; ap: 0.9991381381971196
-cwd: D:\DL_FOR_CV\FreqNet-SRSD
-2026_11_10_01_41_16 Train loss: 1.2461025714874268 at step: 50 lr 0.0001
-2026_11_10_01_42_04 Train loss: 1.5591782331466675 at step: 100 lr 0.0001
-2026_11_10_01_42_50 Train loss: 1.7707483768463135 at step: 150 lr 0.0001
-2026_11_10_01_43_34 Train loss: 1.0186140537261963 at step: 200 lr 0.0001
-(Val @ epoch 0) acc: 0.90125; ap: 0.9552735932014761
-2026_11_10_01_44_30 Train loss: 0.4623735547065735 at step: 250 lr 0.0001
-2026_11_10_01_45_14 Train loss: 1.6821643114089966 at step: 300 lr 0.0001
-2026_11_10_01_45_58 Train loss: 1.11349618434906 at step: 350 lr 0.0001
-2026_11_10_01_46_41 Train loss: 2.0243756771087646 at step: 400 lr 0.0001
-2026_11_10_01_47_25 Train loss: 0.6175318956375122 at step: 450 lr 0.0001
-(Val @ epoch 1) acc: 0.8975; ap: 0.9648723900390113
-2026_11_10_01_48_21 Train loss: 0.566026508808136 at step: 500 lr 0.0001
-2026_11_10_01_49_04 Train loss: 0.38038888573646545 at step: 550 lr 0.0001
-2026_11_10_01_49_48 Train loss: 1.4066523313522339 at step: 600 lr 0.0001
-2026_11_10_01_50_32 Train loss: 1.2445732355117798 at step: 650 lr 0.0001
-(Val @ epoch 2) acc: 0.87875; ap: 0.9427052546275307
-2026_11_10_01_51_28 Train loss: 0.9915619492530823 at step: 700 lr 0.0001
-2026_11_10_01_52_11 Train loss: 0.7978266477584839 at step: 750 lr 0.0001
-2026_11_10_01_52_55 Train loss: 0.7009017467498779 at step: 800 lr 0.0001
-2026_11_10_01_53_39 Train loss: 0.8711109757423401 at step: 850 lr 0.0001
-2026_11_10_01_54_23 Train loss: 0.4505845308303833 at step: 900 lr 0.0001
-(Val @ epoch 3) acc: 0.87375; ap: 0.9576644890208262
-2026_11_10_01_55_18 Train loss: 0.3183794617652893 at step: 950 lr 0.0001
-2026_11_10_01_56_02 Train loss: 0.2668704092502594 at step: 1000 lr 0.0001
-2026_11_10_01_56_46 Train loss: 0.35495683550834656 at step: 1050 lr 0.0001
-2026_11_10_01_57_30 Train loss: 0.42858102917671204 at step: 1100 lr 0.0001
-(Val @ epoch 4) acc: 0.90125; ap: 0.9665410514895716
-Saving model ./checkpoints\srsd_p0.2_ft_seed42\model_epoch_last.pth
+2026_11_10_10_02_54 Train loss: 0.0412 at step: 50 lr 0.0001
+2026_11_10_10_03_38 Train loss: 0.1873 at step: 100 lr 0.0001
+2026_11_10_10_04_22 Train loss: 0.0021 at step: 150 lr 0.0001
+2026_11_10_10_05_06 Train loss: 0.0865 at step: 200 lr 0.0001
+(Val @ epoch 0) acc: 0.99375; ap: 0.9996
+2026_11_10_10_06_45 Train loss: 0.0307 at step: 250 lr 0.0001
+2026_11_10_10_07_29 Train loss: 0.142 at step: 300 lr 0.0001
+2026_11_10_10_08_13 Train loss: 0.0009 at step: 350 lr 0.0001
+2026_11_10_10_08_57 Train loss: 0.0533 at step: 400 lr 0.0001
+2026_11_10_10_09_41 Train loss: 0.0178 at step: 450 lr 0.0001
+(Val @ epoch 1) acc: 0.995; ap: 0.9998
+2026_11_10_10_11_20 Train loss: 0.0644 at step: 500 lr 0.0001
+2026_11_10_10_12_04 Train loss: 0.0012 at step: 550 lr 0.0001
+2026_11_10_10_12_48 Train loss: 0.0291 at step: 600 lr 0.0001
+2026_11_10_10_13_32 Train loss: 0.0076 at step: 650 lr 0.0001
+(Val @ epoch 2) acc: 0.99625; ap: 0.9998
+2026_11_10_10_15_11 Train loss: 0.1105 at step: 700 lr 0.0001
+2026_11_10_10_15_55 Train loss: 0.0004 at step: 750 lr 0.0001
+2026_11_10_10_16_39 Train loss: 0.0187 at step: 800 lr 0.0001
+2026_11_10_10_17_23 Train loss: 0.095 at step: 850 lr 0.0001
+2026_11_10_10_18_07 Train loss: 0.0033 at step: 900 lr 0.0001
+(Val @ epoch 3) acc: 0.9975; ap: 0.9999
+2026_11_10_10_19_46 Train loss: 0.0058 at step: 950 lr 0.0001
+2026_11_10_10_20_30 Train loss: 0.0725 at step: 1000 lr 0.0001
+2026_11_10_10_21_14 Train loss: 0.0016 at step: 1050 lr 0.0001
+2026_11_10_10_21_58 Train loss: 0.0249 at step: 1100 lr 0.0001
+(Val @ epoch 4) acc: 0.9975; ap: 0.9999
+ 
 *************************
-2026_11_10_01_58_04
-(0 BEGAN     ) acc: 91.3; ap: 97.6
-(1 InfoMaxGAN) acc: 53.5; ap: 66.2
-(2 SNGAN     ) acc: 64.4; ap: 78.7
-(3 STGAN     ) acc: 95.2; ap: 99.4
-(4 Mean      ) acc: 76.1; ap: 85.5
+2026_11_10_10_23_27
+(0 BEGAN     ) acc: 99.7; ap: 100.0
+(1 InfoMaxGAN) acc: 96.0; ap: 97.8
+(2 SNGAN     ) acc: 90.0; ap: 92.5
+(3 STGAN     ) acc: 99.2; ap: 100.0
+(4 Mean      ) acc: 96.2; ap: 97.6
 *************************
 2026_11_10_02_01_17
