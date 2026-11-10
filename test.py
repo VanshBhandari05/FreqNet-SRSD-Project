@@ -1,62 +1,45 @@
-import sys
-import time
-import os
-import csv
+import os, csv, time
+import numpy as np
 import torch
-from util import Logger, printSet
 from validate import validate
 from networks.freqnet import freqnet
 from options.test_options import TestOptions
-import numpy as np
-import random
-
-
-DetectionTests = {
-                'ForenSynths': { 'dataroot'   : '/opt/data/private/DeepfakeDetection/ForenSynths/',
-                                 'no_resize'  : False, # Due to the different shapes of images in the dataset, resizing is required during batch detection.
-                                 'no_crop'    : True,
-                               },
-
-           'GANGen-Detection': { 'dataroot'   : '/opt/data/private/DeepfakeDetection/GANGen-Detection/',
-                                 'no_resize'  : True,
-                                 'no_crop'    : True,
-                               },
-
-                 }
-
 
 opt = TestOptions().parse(print_options=False)
 print(f'Model_path {opt.model_path}')
 
-# get model
 model = freqnet(num_classes=1)
-
-# from collections import OrderedDict
-# from copy import deepcopy
-# state_dict = torch.load(opt.model_path, map_location='cpu')['model']
-# pretrained_dict = OrderedDict()
-# for ki in state_dict.keys():
-    # pretrained_dict[ki[7:]] = deepcopy(state_dict[ki])
-# model.load_state_dict(pretrained_dict, strict=True)
-
-model.load_state_dict(torch.load(opt.model_path, map_location='cpu'), strict=True)
+model.load_state_dict(torch.load(opt.model_path, map_location='cpu'), strict=True)  # raw state_dict
 model.cuda()
 model.eval()
 
+rows = []
 
-for testSet in DetectionTests.keys():
-    dataroot = DetectionTests[testSet]['dataroot']
-    printSet(testSet)
 
-    accs = [];aps = []
-    print(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime()))
-    for v_id, val in enumerate(os.listdir(dataroot)):
-        opt.dataroot = '{}/{}'.format(dataroot, val)
-        opt.classes  = '' #os.listdir(opt.dataroot) if multiclass[v_id] else ['']
-        opt.no_resize = DetectionTests[testSet]['no_resize']
-        opt.no_crop   = DetectionTests[testSet]['no_crop']
-        acc, ap, _, _, _, _ = validate(model, opt)
-        accs.append(acc);aps.append(ap)
-        print("({} {:12}) acc: {:.1f}; ap: {:.1f}".format(v_id, val, acc*100, ap*100))
-    print("({} {:10}) acc: {:.1f}; ap: {:.1f}".format(v_id+1,'Mean', np.array(accs).mean()*100, np.array(aps).mean()*100));print('*'*25) 
+def run(name, root, classes, no_resize, no_crop):
+    opt.dataroot, opt.classes, opt.no_resize, opt.no_crop = root, classes, no_resize, no_crop
+    acc, ap, r_acc, f_acc, _, _ = validate(model, opt)
+    rows.append([name, acc * 100, ap * 100, r_acc * 100, f_acc * 100])
+    print("({:12}) acc: {:.1f}; ap: {:.1f}; real_acc: {:.1f}; fake_acc: {:.1f}".format(name, *rows[-1][1:]))
 
+
+print(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime()))
+# in-domain val (20 ProGAN classes; classes=[] -> every sub-folder)
+if opt.val_root and os.path.isdir(opt.val_root):
+    run('in_domain_val', opt.val_root, [''] if '0_real' in os.listdir(opt.val_root) else [], False, False)
+# unseen GANs (all 128x128, flat <GAN>/{0_real,1_fake})
+gan_rows = []
+for gan in sorted(os.listdir(opt.test_root)):
+    run(gan, os.path.join(opt.test_root, gan), [''], True, True)
+    gan_rows.append(rows[-1])
+if gan_rows:
+    m = np.mean([r[1:] for r in gan_rows], axis=0)
+    rows.append(['Mean_unseen'] + m.tolist())
+    print("({:12}) acc: {:.1f}; ap: {:.1f}; real_acc: {:.1f}; fake_acc: {:.1f}".format('Mean_unseen', *m))
+
+os.makedirs(os.path.dirname(opt.out) or '.', exist_ok=True)
+with open(opt.out, 'w', newline='') as f:
+    w = csv.writer(f)
+    w.writerow(['set', 'acc', 'ap', 'real_acc', 'fake_acc'])
+    w.writerows([[r[0]] + [f'{v:.2f}' for v in r[1:]] for r in rows])
+print('wrote', opt.out)

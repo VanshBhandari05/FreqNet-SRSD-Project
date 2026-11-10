@@ -22,5 +22,10 @@ class TrainOptions(BaseOptions):
         # parser.add_argument('--model_path')
         # parser.add_argument('--no_resize', action='store_true')
         # parser.add_argument('--no_crop', action='store_true')
+        # SRSD (Stochastic Radial Spectral Dropout); --srsd_p 0 == original FreqNet
+        parser.add_argument('--srsd_p', type=float, default=0.0)
+        parser.add_argument('--srsd_bands', type=int, default=8)
+        parser.add_argument('--srsd_where', type=str, default='fcl', help='fcl | fcl+hfrf')
+        parser.add_argument('--pretrained', type=str, default='', help='raw state_dict .pth to initialise from (fine-tuning)')
         self.isTrain = True
         return parser

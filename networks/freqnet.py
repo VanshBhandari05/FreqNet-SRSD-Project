@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
+from networks.srsd import RadialSpectralDropout
 
 __all__ = ['FreqNet, freqnet']
 
@@ -88,9 +89,15 @@ class Bottleneck(nn.Module):
 
 class FreqNet(nn.Module):
 
-    def __init__(self, block=Bottleneck, layers=[3, 4], num_classes=1, zero_init_residual=False):
+    def __init__(self, block=Bottleneck, layers=[3, 4], num_classes=1, zero_init_residual=False,
+                 srsd_p=0.0, srsd_bands=8, srsd_where='fcl'):
         super(FreqNet, self).__init__()
 
+        # [SRSD] parameter-free; srsd_p == 0 -> never called -> identical to original FreqNet
+        self.srsd_p = srsd_p
+        self.srsd_hfrf = srsd_p > 0 and 'hfrf' in srsd_where
+        self.srsd_fcl = RadialSpectralDropout(srsd_bands, srsd_p, shifted=True) if srsd_p > 0 else None
+        self.srsd_hf = RadialSpectralDropout(srsd_bands, srsd_p, shifted=True) if self.srsd_hfrf else None
 
 
         self.weight1 = nn.Parameter(torch.randn((64, 3, 1, 1)).cuda())
@@ -153,11 +160,13 @@ class FreqNet(nn.Module):
             layers.append(block(self.inplanes, planes))
         return nn.Sequential(*layers)
 
-    def hfreqWH(self, x, scale):
+    def hfreqWH(self, x, scale, srsd=False):
         assert scale>2
         #print(f'input shape: {x.shape}, min: {x.min()}, max: {x.max()}, mean: {x.mean()}')
         x = torch.fft.fft2(x, norm="ortho")#,norm='forward'
-        x = torch.fft.fftshift(x, dim=[-2, -1]) 
+        x = torch.fft.fftshift(x, dim=[-2, -1])
+        if srsd and self.srsd_hf is not None:   # [SRSD] optional (--srsd_where fcl+hfrf), feature-level HFRFS only
+            x = self.srsd_hf(x)
         b,c,h,w = x.shape
         x[:,:,h//2-h//scale:h//2+h//scale,w//2-w//scale:w//2+w//scale ] = 0.0
         x = torch.fft.ifftshift(x, dim=[-2, -1])
@@ -187,8 +196,19 @@ class FreqNet(nn.Module):
         return x
         
         
+    def _fcl(self, x, realconv, imagconv):
+        x = torch.fft.fft2(x, norm="ortho")#,norm='forward'
+        x = torch.fft.fftshift(x, dim=[-2, -1])
+        if self.srsd_fcl is not None:           # [SRSD] ring-band dropout on the shifted complex spectrum
+            x = self.srsd_fcl(x)
+        x = torch.complex(realconv(x.real), imagconv(x.imag))
+        x = torch.fft.ifftshift(x, dim=[-2, -1])
+        x = torch.fft.ifft2(x, norm="ortho")
+        x = torch.real(x)
+        return F.relu(x, inplace=True)
+
     def forward(self, x):
-        
+
         ### HFRI
         x = self.hfreqWH(x, 4)
         x = F.conv2d(x, self.weight1, self.bias1, stride=1, padding=0)
@@ -198,16 +218,10 @@ class FreqNet(nn.Module):
         x = self.hfreqC(x, 4)
         
         ### FCL
-        x = torch.fft.fft2(x, norm="ortho")#,norm='forward'
-        x = torch.fft.fftshift(x, dim=[-2, -1]) 
-        x = torch.complex(self.realconv1(x.real), self.imagconv1(x.imag))
-        x = torch.fft.ifftshift(x, dim=[-2, -1])
-        x = torch.fft.ifft2(x, norm="ortho")
-        x = torch.real(x)
-        x = F.relu(x, inplace=True)
+        x = self._fcl(x, self.realconv1, self.imagconv1)
 
         ### HFRFS
-        x = self.hfreqWH(x, 4)
+        x = self.hfreqWH(x, 4, srsd=True)
         x = F.conv2d(x, self.weight2, self.bias2, stride=2, padding=0)
         x = F.relu(x, inplace=True)
 
@@ -215,13 +229,7 @@ class FreqNet(nn.Module):
         x = self.hfreqC(x, 4)
         
         ### FCL
-        x = torch.fft.fft2(x, norm="ortho")#,norm='forward'
-        x = torch.fft.fftshift(x, dim=[-2, -1]) 
-        x = torch.complex(self.realconv2(x.real), self.imagconv2(x.imag))
-        x = torch.fft.ifftshift(x, dim=[-2, -1])
-        x = torch.fft.ifft2(x, norm="ortho")
-        x = torch.real(x)
-        x = F.relu(x, inplace=True)
+        x = self._fcl(x, self.realconv2, self.imagconv2)
 
 
         x = self.maxpool(x)
@@ -229,33 +237,21 @@ class FreqNet(nn.Module):
         
         
         ### HFRFS
-        x = self.hfreqWH(x, 4)
+        x = self.hfreqWH(x, 4, srsd=True)
         x = F.conv2d(x, self.weight3, self.bias3, stride=1, padding=0)
         x = F.relu(x, inplace=True)
         
         
         ### FCL
-        x = torch.fft.fft2(x, norm="ortho")#,norm='forward'
-        x = torch.fft.fftshift(x, dim=[-2, -1]) 
-        x = torch.complex(self.realconv3(x.real), self.imagconv3(x.imag))
-        x = torch.fft.ifftshift(x, dim=[-2, -1])
-        x = torch.fft.ifft2(x, norm="ortho")
-        x = torch.real(x)
-        x = F.relu(x, inplace=True)
+        x = self._fcl(x, self.realconv3, self.imagconv3)
 
         ### HFRFS
-        x = self.hfreqWH(x, 4)
+        x = self.hfreqWH(x, 4, srsd=True)
         x = F.conv2d(x, self.weight4, self.bias4, stride=2, padding=0)
         x = F.relu(x, inplace=True)
 
         ### FCL
-        x = torch.fft.fft2(x, norm="ortho")#,norm='forward'
-        x = torch.fft.fftshift(x, dim=[-2, -1]) 
-        x = torch.complex(self.realconv4(x.real), self.imagconv4(x.imag))
-        x = torch.fft.ifftshift(x, dim=[-2, -1])
-        x = torch.fft.ifft2(x, norm="ortho")
-        x = torch.real(x)
-        x = F.relu(x, inplace=True)
+        x = self._fcl(x, self.realconv4, self.imagconv4)
 
         x = self.layer2(x)
 
@@ -267,6 +263,6 @@ class FreqNet(nn.Module):
 
 def freqnet(**kwargs):
 
-    return FreqNet()
+    return FreqNet(**{k: v for k, v in kwargs.items() if k.startswith('srsd_')})
     
     

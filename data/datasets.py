@@ -7,7 +7,7 @@ from random import random, choice
 from io import BytesIO
 from PIL import Image
 from PIL import ImageFile
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 from torchvision.transforms import InterpolationMode
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -20,20 +20,24 @@ def dataset_folder(opt, root):
     raise ValueError('opt.mode needs to be binary or filename.')
 
 
+def _identity(img):  # [PATCH] picklable (Windows spawn workers)
+    return img
+
+
 def binary_dataset(opt, root):
     if opt.isTrain:
         crop_func = transforms.RandomCrop(opt.cropSize)
     elif opt.no_crop:
-        crop_func = transforms.Lambda(lambda img: img)
+        crop_func = transforms.Lambda(_identity)
     else:
         crop_func = transforms.CenterCrop(opt.cropSize)
 
     if opt.isTrain and not opt.no_flip:
         flip_func = transforms.RandomHorizontalFlip()
     else:
-        flip_func = transforms.Lambda(lambda img: img)
+        flip_func = transforms.Lambda(_identity)
     if not opt.isTrain and opt.no_resize:
-        rz_func = transforms.Lambda(lambda img: img)
+        rz_func = transforms.Lambda(_identity)
     else:
         # rz_func = transforms.Lambda(lambda img: custom_resize(img, opt))
         rz_func = transforms.Resize((opt.loadSize, opt.loadSize))

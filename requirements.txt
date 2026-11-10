@@ -3,6 +3,7 @@ scikit-learn
 numpy
 opencv_python
 Pillow
-torch>=1.2.0
-torchvision
-gdown==4.7.1 
+tensorboardX
+pandas
+requests
+matplotlib

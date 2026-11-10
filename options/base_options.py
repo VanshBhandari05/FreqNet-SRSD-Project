@@ -40,6 +40,7 @@ class BaseOptions():
         parser.add_argument('--init_type', type=str, default='normal', help='network initialization [normal|xavier|kaiming|orthogonal]')
         parser.add_argument('--init_gain', type=float, default=0.02, help='scaling factor for normal, xavier and orthogonal.')
         parser.add_argument('--suffix', default='', type=str, help='customized suffix: opt.name = opt.name + suffix: e.g., {model}_{netG}_size{loadSize}')
+        parser.add_argument('--seed', type=int, default=42, help='random seed')
         parser.add_argument('--delr_freq', type=int, default=20, help='frequency of changing lr')
 
         
@@ -84,7 +85,7 @@ class BaseOptions():
 
         opt = self.gather_options()
         opt.isTrain = self.isTrain   # train or test
-        opt.name = opt.name + time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
+        # [PATCH] no timestamp suffix: checkpoints go to checkpoints/<name>/
         # process opt.suffix
         if opt.suffix:
             suffix = ('_' + opt.suffix.format(**vars(opt))) if opt.suffix != '' else ''

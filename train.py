@@ -14,22 +14,16 @@ from options.train_options import TrainOptions
 from options.test_options import TestOptions
 from util import Logger
 
-# import random
-# def seed_torch(seed=1029):
-    # random.seed(seed)
-    # os.environ['PYTHONHASHSEED'] = str(seed)
-    # np.random.seed(seed)
-    # torch.manual_seed(seed)
-    # torch.cuda.manual_seed(seed)
-    # torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
-    # torch.backends.cudnn.benchmark = False
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.enabled = False
+import random, shutil
+
+
+def set_seed(s):
+    random.seed(s); np.random.seed(s); torch.manual_seed(s); torch.cuda.manual_seed_all(s)
+    torch.backends.cudnn.deterministic = True; torch.backends.cudnn.benchmark = False
 
 
 # test config
-vals = ['progan', 'stylegan', 'stylegan2', 'biggan', 'cyclegan', 'stargan', 'gaugan', 'deepfake']
-multiclass = [1, 1, 1, 0, 1, 0, 0, 0]
+# [PATCH] test sets are discovered from <dataroot>/test/<GAN>/{0_real,1_fake}
 
 
 def get_val_opt():
@@ -45,7 +39,7 @@ def get_val_opt():
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()
-    # seed_torch(100)
+    set_seed(opt.seed)  # [PATCH]
     Testdataroot = os.path.join(opt.dataroot, 'test')
     opt.dataroot = '{}/{}/'.format(opt.dataroot, opt.train_split)
     Logger(os.path.join(opt.checkpoints_dir, opt.name, 'log.log'))
@@ -62,17 +56,23 @@ if __name__ == '__main__':
     def testmodel():
         print('*'*25);accs = [];aps = []
         print(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime()))
-        for v_id, val in enumerate(vals):
+        names = sorted(os.listdir(Testdataroot)) if os.path.isdir(Testdataroot) else []
+        for v_id, val in enumerate(names):
             Testopt.dataroot = '{}/{}'.format(Testdataroot, val)
-            Testopt.classes = os.listdir(Testopt.dataroot) if multiclass[v_id] else ['']
-            Testopt.no_resize = False
+            Testopt.classes = ['']
+            Testopt.no_resize = True
             Testopt.no_crop = True
             acc, ap, _, _, _, _ = validate(model.model, Testopt)
             accs.append(acc);aps.append(ap)
             print("({} {:10}) acc: {:.1f}; ap: {:.1f}".format(v_id, val, acc*100, ap*100))
-        print("({} {:10}) acc: {:.1f}; ap: {:.1f}".format(v_id+1,'Mean', np.array(accs).mean()*100, np.array(aps).mean()*100));print('*'*25) 
+        if accs:
+            print("({} {:10}) acc: {:.1f}; ap: {:.1f}".format(len(accs),'Mean', np.array(accs).mean()*100, np.array(aps).mean()*100))
+        print('*'*25)
         print(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime()))
     # model.eval();testmodel();
+    model.eval()
+    acc, ap = validate(model.model, val_opt)[:2]
+    print("(Val @ start, before training) acc: {}; ap: {}".format(acc, ap))
     model.train()
     print(f'cwd: {os.getcwd()}')
     for epoch in range(opt.niter):
@@ -106,6 +106,10 @@ if __name__ == '__main__':
         # testmodel()
         model.train()
 
+    model.save_networks('last')  # [PATCH] save first, so a failing test loop can never lose the model
+    os.makedirs('checkpoints', exist_ok=True); os.makedirs('logs', exist_ok=True)
+    shutil.copy(os.path.join(model.save_dir, 'model_epoch_last.pth'), os.path.join('checkpoints', opt.name + '.pth'))
     model.eval();testmodel()
-    model.save_networks('last')
+    sys.stdout.flush()
+    shutil.copy(os.path.join(opt.checkpoints_dir, opt.name, 'log.log'), os.path.join('logs', opt.name + '.log'))
     

@@ -39,14 +39,27 @@ def get_bal_sampler(dataset):
     return sampler
 
 
+class _make_winit:  # picklable (Windows spawn)
+    def __init__(self, seed):
+        self.seed = seed
+
+    def __call__(self, wid):
+        np.random.seed(self.seed + wid)
+
+
 def create_dataloader(opt):
     shuffle = not opt.serial_batches if (opt.isTrain and not opt.class_bal) else False
     dataset = get_dataset(opt)
     sampler = get_bal_sampler(dataset) if opt.class_bal else None
 
+    # [PATCH] seeded shuffling / workers for reproducibility
+    g = torch.Generator()
+    g.manual_seed(getattr(opt, 'seed', 42))
     data_loader = torch.utils.data.DataLoader(dataset,
                                               batch_size=opt.batch_size,
                                               shuffle=shuffle,
                                               sampler=sampler,
-                                              num_workers=int(opt.num_threads))
+                                              num_workers=int(opt.num_threads),
+                                              generator=g,
+                                              worker_init_fn=_make_winit(getattr(opt, 'seed', 42)))
     return data_loader

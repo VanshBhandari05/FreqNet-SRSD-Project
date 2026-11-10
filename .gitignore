@@ -1,0 +1,8 @@
+.venv/
+data/
+data_raw/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+checkpoints/*/train/
+checkpoints/*/val/

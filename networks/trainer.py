@@ -12,8 +12,14 @@ class Trainer(BaseModel):
     def __init__(self, opt):
         super(Trainer, self).__init__(opt)
 
-        self.model = freqnet()
-        
+        self.model = freqnet(srsd_p=getattr(opt, 'srsd_p', 0.0), srsd_bands=getattr(opt, 'srsd_bands', 8),
+                             srsd_where=getattr(opt, 'srsd_where', 'fcl'))
+        n_params = sum(p.numel() for p in self.model.parameters())
+        print(f'[model] parameters: {n_params}  srsd_p={getattr(opt, "srsd_p", 0.0)}')
+        if getattr(opt, 'pretrained', ''):   # [PATCH] start from a raw state_dict (e.g. official FreqNet weights)
+            self.model.load_state_dict(torch.load(opt.pretrained, map_location='cpu'), strict=True)
+            print(f'[model] loaded pretrained weights from {opt.pretrained}')
+
         for name,pa in self.model.named_parameters():
             if pa.requires_grad: print('='*20, 'requires_grad Ture',name)
         for name,pa in self.model.named_parameters():
